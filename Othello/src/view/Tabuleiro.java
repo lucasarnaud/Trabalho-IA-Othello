@@ -12,6 +12,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
+import model.Casa;
 import controller.God;
 import controller.StatusCasa;
 
@@ -88,7 +89,7 @@ public class Tabuleiro {
 	}
 
 
-	public void update(final StatusCasa casas[][], StatusCasa jogador) {
+	public void atualiza(final Casa casas[][], StatusCasa jogador) {
 		panel.removeAll();
 		int pontosBrancas = 0;
 		int pontosPretas= 0;
@@ -102,7 +103,7 @@ public class Tabuleiro {
 				JLabel labelImage;
 				ImageIcon imageIcon;
 
-				switch (casas[i][j]) {
+				switch (casas[i][j].getStatus()) {
 				case PECA_BRANCA:
 					imageIcon = new ImageIcon("img/peca_branca.png");
 					labelImage = new JLabel(imageIcon);
@@ -138,7 +139,6 @@ public class Tabuleiro {
 						
 						@Override
 						public void mouseClicked(MouseEvent arg0) {
-							System.out.println("cliquei");
 							God.getInstance().jogar(iFinal, jFinal);
 						}
 					});
@@ -153,11 +153,7 @@ public class Tabuleiro {
 				labelImage.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 				
 				panel.add(labelImage);	
-
-				System.out.print(casas[i][j] + " ");
 			}
-			System.out.println();
-
 		}
 		
 		labelJogador.setText(jogador == StatusCasa.PECA_PRETA ? "PEÇA PRETA" : "PEÇA BRANCA");
