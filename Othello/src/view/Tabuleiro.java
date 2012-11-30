@@ -89,10 +89,9 @@ public class Tabuleiro {
 	}
 
 
-	public void atualiza(final Casa casas[][], StatusCasa jogador) {
+	public void atualiza(final Casa casas[][], StatusCasa jogador,
+			int pontosBrancas, int pontosPretas) {
 		panel.removeAll();
-		int pontosBrancas = 0;
-		int pontosPretas= 0;
 
 		for (int i = 0; i < casas.length; i++) {
 			final int iFinal = i; 
@@ -107,12 +106,10 @@ public class Tabuleiro {
 				case PECA_BRANCA:
 					imageIcon = new ImageIcon("img/peca_branca.png");
 					labelImage = new JLabel(imageIcon);
-					pontosBrancas++;
 					break;
 				case PECA_PRETA:
 					imageIcon = new ImageIcon("img/peca_preta.png");
 					labelImage = new JLabel(imageIcon);
-					pontosPretas++;
 					break;
 
 				case JOGADA_POSSIVEL:
@@ -158,8 +155,8 @@ public class Tabuleiro {
 		
 		labelJogador.setText(jogador == StatusCasa.PECA_PRETA ? "PEÇA PRETA" : "PEÇA BRANCA");
 		
-		labelPontosBrancas.setText(String.valueOf(pontosBrancas));
-		labelPontosPretas.setText(String.valueOf(pontosPretas));
+		labelPontosBrancas.setText(Integer.toString(pontosBrancas));
+		labelPontosPretas.setText(Integer.toString(pontosPretas));
 
 	}
 
