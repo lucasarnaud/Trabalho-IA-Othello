@@ -2,8 +2,6 @@ package main;
 
 import java.awt.EventQueue;
 
-import controller.God;
-
 import view.Tabuleiro;
 
 public class Main {
@@ -14,7 +12,6 @@ public class Main {
 			public void run() {
 				try {
 					Tabuleiro.getInstance().start();
-					God.getInstance();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

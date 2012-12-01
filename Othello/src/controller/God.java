@@ -9,19 +9,15 @@ import view.Tabuleiro;
 
 public class God {
 
-	private static final int TAMANHO_TABULEIRO = 8;
+	public static final int TAMANHO_TABULEIRO = 8;
 
 	private static final int DIRECAO_BAIXO = 1;
-
 	private static final int DIRECAO_CIMA = -1;
-
 	private static final int DIRECAO_MESMA = 0;
-
 	private static final int DIRECAO_DIREITA = 1;
-
 	private static final int DIRECAO_ESQUERDA = -1;
 
-	private static God instance;
+	private static final God instance = new God();
 	private static Tabuleiro tabuleiro;
 
 	private StatusCasa jogadorVez;
@@ -33,16 +29,11 @@ public class God {
 
 	private God() {
 		casas = new Casa[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO];
-		jogadorVez = StatusCasa.PECA_PRETA;
 
 		for (int i = 0; i < TAMANHO_TABULEIRO; i++) {
-
 			for (int j = 0; j < TAMANHO_TABULEIRO; j++) {
-
 				casas[i][j] = new Casa(i, j);
-
 			}
-
 		}
 		
 		jogadasPossiveis = new HashSet<Casa>();
@@ -51,6 +42,22 @@ public class God {
 		pecasJogadores.put(StatusCasa.PECA_BRANCA, new HashSet<Casa>());
 		pecasJogadores.put(StatusCasa.PECA_PRETA, new HashSet<Casa>());
 	
+		tabuleiro = Tabuleiro.getInstance();
+	}
+
+	public void inicializaJogo() {
+		pecasJogadores.get(StatusCasa.PECA_BRANCA).clear();
+		pecasJogadores.get(StatusCasa.PECA_PRETA).clear();
+		jogadasPossiveis.clear();
+		
+		jogadorVez = StatusCasa.PECA_PRETA;
+		
+		for (int i = 0; i < TAMANHO_TABULEIRO; i++) {
+			for (int j = 0; j < TAMANHO_TABULEIRO; j++) {
+				casas[i][j].setStatus(StatusCasa.JOGADA_NAO_POSSIVEL);
+			}
+		}
+
 		casas[3][3].setStatus(StatusCasa.PECA_BRANCA);
 		casas[4][4].setStatus(StatusCasa.PECA_BRANCA);
 		
@@ -73,43 +80,54 @@ public class God {
 		jogadasPossiveis.add(casas[4][5]);
 		jogadasPossiveis.add(casas[5][4]);
 		
-		tabuleiro = Tabuleiro.getInstance();
 		tabuleiro.atualiza(casas, jogadorVez,
 				pecasJogadores.get(StatusCasa.PECA_BRANCA).size(),
 				pecasJogadores.get(StatusCasa.PECA_PRETA).size());
 	}
+	
 
 	public static God getInstance() {
-		if (instance == null) {
-			instance = new God();
-		}
 		return instance;
 	}
 
 	public void jogar(int i, int j) {
 
-		verificarValidadeJogada(i, j);
+		verificaValidadeJogada(i, j);
 
-		colocarPeca(i, j);
+		colocaPeca(i, j); //posiciona a nova peca no tabuleiro e reverte as pecas da outra cor
 
-		jogadorVez = jogadorVez == StatusCasa.PECA_BRANCA ? StatusCasa.PECA_PRETA
-				: StatusCasa.PECA_BRANCA;
+		StatusCasa jogadorAnterior = jogadorVez;
+		jogadorVez = (jogadorVez == StatusCasa.PECA_BRANCA ? StatusCasa.PECA_PRETA
+				: StatusCasa.PECA_BRANCA);
 
-		atualizarJogadasPossiveis();
+		atualizaJogadasPossiveis();
 
 		tabuleiro.atualiza(casas, jogadorVez,
 				pecasJogadores.get(StatusCasa.PECA_BRANCA).size(),
 				pecasJogadores.get(StatusCasa.PECA_PRETA).size());
+
+
+		if ( verificaFimJogo() ) return; //verifica se jogo acabou e notifica o tabuleiro, informando quem foi o vencedor ou se houve empate
+		
+		if (jogadasPossiveis.isEmpty()) {
+			tabuleiro.semJogadasPossiveis(jogadorVez);
+			jogadorVez = jogadorAnterior;
+			atualizaJogadasPossiveis();
+			
+			tabuleiro.atualiza(casas, jogadorVez,
+					pecasJogadores.get(StatusCasa.PECA_BRANCA).size(),
+					pecasJogadores.get(StatusCasa.PECA_PRETA).size());
+		}
 	}
 	
-
-	private void verificarValidadeJogada(int i, int j) {
+			
+	private void verificaValidadeJogada(int i, int j) {
 		if (!jogadasPossiveis.contains(casas[i][j]))
 			throw new RuntimeException(); // FIXME criar exception propria
 	}
 
 	
-	private void colocarPeca(int i, int j) {
+	private void colocaPeca(int i, int j) {
 		Casa casa = casas[i][j];
 		
 		casa.setStatus(jogadorVez);
@@ -117,11 +135,11 @@ public class God {
 		pecasJogadores.get(jogadorVez).add(casa);
 		jogadasPossiveis.remove(casa);
 		
-		atualizarPecas(i, j);
+		atualizaPecas(i, j);
 	}
 	
 
-	private void atualizarPecas(int i, int j) {
+	private void atualizaPecas(int i, int j) {
 
 		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_MESMA); //baixo
 		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_MESMA); //cima
@@ -160,20 +178,49 @@ public class God {
 		if (repintar) {
 			while (!casasAvaliadas.isEmpty()) {
 				Casa casa = casasAvaliadas.pop();
+
+				pecasJogadores.get(casa.getStatus()).remove(casa);
+				
 				casa.setStatus(jogadorVez);
 
-				StatusCasa adversario = jogadorVez == StatusCasa.PECA_BRANCA ? StatusCasa.PECA_PRETA
-						: StatusCasa.PECA_BRANCA;
-
 				pecasJogadores.get(jogadorVez).add(casa);
-				pecasJogadores.get(adversario).remove(casa);
 			}
 		}
 
 	}	
 
 	
-	private void atualizarJogadasPossiveis() {
+	private boolean verificaFimJogo() {
+		
+		boolean fimJogo = false;
+		
+		int numeroPecas = 0;
+		
+		for (HashSet<Casa> pecas : pecasJogadores.values()) {
+			if ( pecas.isEmpty() ) fimJogo = true;
+			numeroPecas += pecas.size();
+		}
+		
+		if (numeroPecas == TAMANHO_TABULEIRO * TAMANHO_TABULEIRO) fimJogo = true;
+		
+		if (fimJogo) {
+			int nPretas = pecasJogadores.get(StatusCasa.PECA_PRETA).size();
+			int nBrancas = pecasJogadores.get(StatusCasa.PECA_BRANCA).size();
+			
+			if (nBrancas > nPretas)
+				tabuleiro.fimDeJogo(StatusCasa.PECA_BRANCA);
+			else if (nPretas > nBrancas)
+				tabuleiro.fimDeJogo(StatusCasa.PECA_PRETA);
+			else
+				tabuleiro.fimDeJogo(StatusCasa.JOGADA_NAO_POSSIVEL);
+		}
+		
+		return fimJogo;
+		
+	}
+
+	
+	private void atualizaJogadasPossiveis() {
 		
 		for (Casa casa : jogadasPossiveis) {
 			casa.setStatus(StatusCasa.JOGADA_NAO_POSSIVEL);
