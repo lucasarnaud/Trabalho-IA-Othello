@@ -18,14 +18,14 @@ public class God {
 	private static final int DIRECAO_ESQUERDA = -1;
 
 	private static final God instance = new God();
-	private static Tabuleiro tabuleiro;
+	private Tabuleiro tabuleiro;
 
 	private StatusCasa jogadorVez;
 	private Casa[][] casas;
-	
-	private HashSet<Casa> jogadasPossiveis; //armazena o conjunto de casas disponiveis por rodada
-	private HashMap<StatusCasa, HashSet<Casa>> pecasJogadores; //armazena o conjunto de pecas brancas e pretas no tabuleiro
-	
+
+	private HashSet<Casa> jogadasPossiveis; // armazena o conjunto de casas disponiveis por rodada
+	private HashMap<StatusCasa, HashSet<Casa>> pecasJogadores; // armazena o conjunto de pecas brancas e pretas no tabuleiro
+
 
 	private God() {
 		casas = new Casa[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO];
@@ -35,13 +35,13 @@ public class God {
 				casas[i][j] = new Casa(i, j);
 			}
 		}
-		
+
 		jogadasPossiveis = new HashSet<Casa>();
 		pecasJogadores = new HashMap<StatusCasa, HashSet<Casa>>();
-		
+
 		pecasJogadores.put(StatusCasa.PECA_BRANCA, new HashSet<Casa>());
 		pecasJogadores.put(StatusCasa.PECA_PRETA, new HashSet<Casa>());
-	
+
 		tabuleiro = Tabuleiro.getInstance();
 	}
 
@@ -49,9 +49,9 @@ public class God {
 		pecasJogadores.get(StatusCasa.PECA_BRANCA).clear();
 		pecasJogadores.get(StatusCasa.PECA_PRETA).clear();
 		jogadasPossiveis.clear();
-		
+
 		jogadorVez = StatusCasa.PECA_PRETA;
-		
+
 		for (int i = 0; i < TAMANHO_TABULEIRO; i++) {
 			for (int j = 0; j < TAMANHO_TABULEIRO; j++) {
 				casas[i][j].setStatus(StatusCasa.JOGADA_NAO_POSSIVEL);
@@ -60,10 +60,10 @@ public class God {
 
 		casas[3][3].setStatus(StatusCasa.PECA_BRANCA);
 		casas[4][4].setStatus(StatusCasa.PECA_BRANCA);
-		
+
 		casas[3][4].setStatus(StatusCasa.PECA_PRETA);
 		casas[4][3].setStatus(StatusCasa.PECA_PRETA);
-		
+
 		casas[2][3].setStatus(StatusCasa.JOGADA_POSSIVEL);
 		casas[3][2].setStatus(StatusCasa.JOGADA_POSSIVEL);
 		casas[4][5].setStatus(StatusCasa.JOGADA_POSSIVEL);
@@ -71,20 +71,19 @@ public class God {
 
 		pecasJogadores.get(StatusCasa.PECA_BRANCA).add(casas[3][3]);
 		pecasJogadores.get(StatusCasa.PECA_BRANCA).add(casas[4][4]);
-		
+
 		pecasJogadores.get(StatusCasa.PECA_PRETA).add(casas[3][4]);
 		pecasJogadores.get(StatusCasa.PECA_PRETA).add(casas[4][3]);
-		
+
 		jogadasPossiveis.add(casas[2][3]);
 		jogadasPossiveis.add(casas[3][2]);
 		jogadasPossiveis.add(casas[4][5]);
 		jogadasPossiveis.add(casas[5][4]);
-		
+
 		tabuleiro.atualiza(casas, jogadorVez,
 				pecasJogadores.get(StatusCasa.PECA_BRANCA).size(),
 				pecasJogadores.get(StatusCasa.PECA_PRETA).size());
 	}
-	
 
 	public static God getInstance() {
 		return instance;
@@ -94,72 +93,85 @@ public class God {
 
 		verificaValidadeJogada(i, j);
 
-		colocaPeca(i, j); //posiciona a nova peca no tabuleiro e reverte as pecas da outra cor
+		colocaPeca(i, j); // posiciona a nova peca no tabuleiro e reverte as pecas da outra cor
 
-		StatusCasa jogadorAnterior = jogadorVez;
-		jogadorVez = (jogadorVez == StatusCasa.PECA_BRANCA ? StatusCasa.PECA_PRETA
-				: StatusCasa.PECA_BRANCA);
-
-		atualizaJogadasPossiveis();
+		atualizaProximaJogada();
 
 		tabuleiro.atualiza(casas, jogadorVez,
 				pecasJogadores.get(StatusCasa.PECA_BRANCA).size(),
 				pecasJogadores.get(StatusCasa.PECA_PRETA).size());
 
-
-		if ( verificaFimJogo() ) return; //verifica se jogo acabou e notifica o tabuleiro, informando quem foi o vencedor ou se houve empate
-		
 		if (jogadasPossiveis.isEmpty()) {
-			tabuleiro.semJogadasPossiveis(jogadorVez);
-			jogadorVez = jogadorAnterior;
-			atualizaJogadasPossiveis();
-			
+
+			StatusCasa adversario = jogadorVez;
+
+			atualizaProximaJogada();
+
+			if (jogadasPossiveis.isEmpty()) { fimJogo(); return; }
+
+			tabuleiro.semJogadasPossiveis(adversario);
+
 			tabuleiro.atualiza(casas, jogadorVez,
 					pecasJogadores.get(StatusCasa.PECA_BRANCA).size(),
 					pecasJogadores.get(StatusCasa.PECA_PRETA).size());
 		}
 	}
-	
-			
+
+	private void atualizaProximaJogada() {
+		jogadorVez = (jogadorVez == StatusCasa.PECA_BRANCA ? StatusCasa.PECA_PRETA
+				: StatusCasa.PECA_BRANCA);
+
+		atualizaJogadasPossiveis();
+	}
+
+	private void fimJogo() {
+		int nPretas = pecasJogadores.get(StatusCasa.PECA_PRETA).size();
+		int nBrancas = pecasJogadores.get(StatusCasa.PECA_BRANCA).size();
+
+		if (nBrancas > nPretas)
+			tabuleiro.fimDeJogo(StatusCasa.PECA_BRANCA);
+		else if (nPretas > nBrancas)
+			tabuleiro.fimDeJogo(StatusCasa.PECA_PRETA);
+		else
+			tabuleiro.fimDeJogo(StatusCasa.JOGADA_NAO_POSSIVEL);
+	}
+
 	private void verificaValidadeJogada(int i, int j) {
 		if (!jogadasPossiveis.contains(casas[i][j]))
 			throw new RuntimeException(); // FIXME criar exception propria
 	}
 
-	
 	private void colocaPeca(int i, int j) {
 		Casa casa = casas[i][j];
-		
+
 		casa.setStatus(jogadorVez);
-		
+
 		pecasJogadores.get(jogadorVez).add(casa);
 		jogadasPossiveis.remove(casa);
-		
+
 		atualizaPecas(i, j);
 	}
-	
 
 	private void atualizaPecas(int i, int j) {
 
-		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_MESMA); //baixo
-		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_MESMA); //cima
-		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_MESMA, DIRECAO_DIREITA); //direita
-		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_MESMA, DIRECAO_ESQUERDA); //esquerda
-		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_DIREITA); //diagonal baixo/direita
-		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_ESQUERDA); //diagonal baixo/esquerda
-		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_DIREITA); //diagonal cima/direita
-		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_ESQUERDA); //diagonal cima/esquerda
+		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_MESMA); // baixo
+		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_MESMA); // cima
+		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_MESMA, DIRECAO_DIREITA); // direita
+		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_MESMA, DIRECAO_ESQUERDA); // esquerda
+		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_DIREITA); // diagonal baixo/direita
+		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_ESQUERDA); // diagonal baixo/esquerda
+		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_DIREITA); // diagonal cima/direita
+		atualizaCorEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_ESQUERDA); // diagonal cima/esquerda
 	}
-	
-	
-	private void atualizaCorEmUmaDasDirecoes(int i, int j,
-			int direcaoI, int direcaoJ) {
+
+	private void atualizaCorEmUmaDasDirecoes(int i, int j, int direcaoI,
+			int direcaoJ) {
 
 		Stack<Casa> casasAvaliadas = new Stack<Casa>();
 		boolean repintar = false;
 
-		for (int l = i + direcaoI, c = j + direcaoJ; l >= 0 && l < TAMANHO_TABULEIRO
-				&& c >= 0 && c < TAMANHO_TABULEIRO; l += direcaoI, c += direcaoJ) {
+		for (int l = i + direcaoI, c = j + direcaoJ; l >= 0
+				&& l < TAMANHO_TABULEIRO && c >= 0 && c < TAMANHO_TABULEIRO; l += direcaoI, c += direcaoJ) {
 
 			StatusCasa sc = casas[l][c].getStatus();
 
@@ -180,101 +192,71 @@ public class God {
 				Casa casa = casasAvaliadas.pop();
 
 				pecasJogadores.get(casa.getStatus()).remove(casa);
-				
+
 				casa.setStatus(jogadorVez);
 
 				pecasJogadores.get(jogadorVez).add(casa);
 			}
 		}
 
-	}	
-
-	
-	private boolean verificaFimJogo() {
-		
-		boolean fimJogo = false;
-		
-		int numeroPecas = 0;
-		
-		for (HashSet<Casa> pecas : pecasJogadores.values()) {
-			if ( pecas.isEmpty() ) fimJogo = true;
-			numeroPecas += pecas.size();
-		}
-		
-		if (numeroPecas == TAMANHO_TABULEIRO * TAMANHO_TABULEIRO) fimJogo = true;
-		
-		if (fimJogo) {
-			int nPretas = pecasJogadores.get(StatusCasa.PECA_PRETA).size();
-			int nBrancas = pecasJogadores.get(StatusCasa.PECA_BRANCA).size();
-			
-			if (nBrancas > nPretas)
-				tabuleiro.fimDeJogo(StatusCasa.PECA_BRANCA);
-			else if (nPretas > nBrancas)
-				tabuleiro.fimDeJogo(StatusCasa.PECA_PRETA);
-			else
-				tabuleiro.fimDeJogo(StatusCasa.JOGADA_NAO_POSSIVEL);
-		}
-		
-		return fimJogo;
-		
 	}
 
-	
 	private void atualizaJogadasPossiveis() {
-		
+
 		for (Casa casa : jogadasPossiveis) {
 			casa.setStatus(StatusCasa.JOGADA_NAO_POSSIVEL);
 		}
 		jogadasPossiveis.clear();
 
 		HashSet<Casa> pecasJogadorVez = pecasJogadores.get(jogadorVez);
-		
+
 		for (Casa casa : pecasJogadorVez) {
-			
+
 			int i = casa.getI();
 			int j = casa.getJ();
-			
-			atualizaPossibilidadeEmUmaDasDirecoes(i+1, j+0, +1, +0); //baixo
-			atualizaPossibilidadeEmUmaDasDirecoes(i-1, j+0, -1, +0); //cima
-			atualizaPossibilidadeEmUmaDasDirecoes(i-0, j+1, -0, +1); //direita
-			atualizaPossibilidadeEmUmaDasDirecoes(i-0, j-1, -0, -1); //esquerda
-			atualizaPossibilidadeEmUmaDasDirecoes(i+1, j+1, +1, +1); //diagonal baixo/direita
-			atualizaPossibilidadeEmUmaDasDirecoes(i+1, j-1, +1, -1); //diagonal baixo/esquerda
-			atualizaPossibilidadeEmUmaDasDirecoes(i-1, j+1, -1, +1); //diagonal cima/direita
-			atualizaPossibilidadeEmUmaDasDirecoes(i-1, j-1, -1, -1); //diagonal cima/esquerda			
-			
+
+			atualizaPossibilidadeEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_MESMA); // baixo
+			atualizaPossibilidadeEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_MESMA); // cima
+			atualizaPossibilidadeEmUmaDasDirecoes(i, j, DIRECAO_MESMA, DIRECAO_DIREITA); // direita
+			atualizaPossibilidadeEmUmaDasDirecoes(i, j, DIRECAO_MESMA, DIRECAO_ESQUERDA); // esquerda
+			atualizaPossibilidadeEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_DIREITA); // diagonal baixo/direita
+			atualizaPossibilidadeEmUmaDasDirecoes(i, j, DIRECAO_BAIXO, DIRECAO_ESQUERDA); // diagonal baixo/esquerda
+			atualizaPossibilidadeEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_DIREITA); // diagonal cima/direita
+			atualizaPossibilidadeEmUmaDasDirecoes(i, j, DIRECAO_CIMA, DIRECAO_ESQUERDA); // diagonal cima/esquerda
+
 		}
-		
+
 	}
-	
-	
-	private void atualizaPossibilidadeEmUmaDasDirecoes(int iInicial, int jInicial,
-			int incrementoI, int incrementoJ) {
+
+	private void atualizaPossibilidadeEmUmaDasDirecoes(int i, int j,
+			int direcaoI, int direcaoJ) {
 
 		boolean podeSerPossivel = false;
-		
+
 		StatusCasa sc = jogadorVez;
-		
-		int i, j;
-		for (i = iInicial, j = jInicial; i >= 0 && i < TAMANHO_TABULEIRO
-				&& j >= 0 && j < TAMANHO_TABULEIRO; i += incrementoI, j += incrementoJ) {
 
-			sc = casas[i][j].getStatus();
+		int iInicial = i + direcaoI, jInicial = j + direcaoJ;
 
-			if (sc == jogadorVez || sc == StatusCasa.JOGADA_NAO_POSSIVEL || sc == StatusCasa.JOGADA_POSSIVEL) {
+		int l, c;
+		for (l = iInicial, c = jInicial; l >= 0 && l < casas.length && c >= 0
+				&& c < casas[i].length; l += direcaoI, c += direcaoJ) {
+
+			sc = casas[l][c].getStatus();
+
+			if (sc == jogadorVez || sc == StatusCasa.JOGADA_NAO_POSSIVEL
+					|| sc == StatusCasa.JOGADA_POSSIVEL) {
 				break;
 			} else {
 				podeSerPossivel = true;
 			}
 		}
-		
+
 		if (podeSerPossivel && sc == StatusCasa.JOGADA_NAO_POSSIVEL) {
-			Casa casa = casas[i][j];
+			Casa casa = casas[l][c];
 			casa.setStatus(StatusCasa.JOGADA_POSSIVEL);
 			jogadasPossiveis.add(casa);
 		}
 
-	}	
-
+	}
 
 }
