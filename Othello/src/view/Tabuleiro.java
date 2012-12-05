@@ -20,22 +20,36 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
+import javax.swing.plaf.SliderUI;
 
+import jogadores.Guloso;
+import jogadores.Humano;
+import jogadores.Jogador;
+import jogadores.Minmax;
 import model.Casa;
 import controller.God;
 import controller.StatusCasa;
+import javax.swing.JButton;
+import java.awt.event.ActionListener;
 
 public class Tabuleiro {
 
 	private static Tabuleiro instance = new Tabuleiro();
 	
+	private JButton btnPrximaJogada;
+	
 	private JFrame frmReversi;
 	private JPanel panel;
+	
 	private JLabel labelPontosPretas;
 	private JLabel labelPontosBrancas;
 	private JLabel labelJogador;
+	
 	private boolean podeComecarJogo;
-	private final Action novoJogoAction = new NovoJogoAction();
+	private final Action novoJogoHumanoVsHumanoAction = new NovoJogoHumanoVsHumanoAction();
+	private final Action novoJogoHumanoVsMaquinaAction = new NovoJogoHumanoVsMaquinaAction();
+	private final Action novoJogoMaquinaVsMaquinaAction = new NovoJogoMaquinaVsMaquinaAction();
+
 	private final Action sairAction = new SairAction();
 
 	
@@ -50,7 +64,7 @@ public class Tabuleiro {
 
 	public void start() {
 		frmReversi.setVisible(true);
-		God.getInstance().inicializaJogo();
+		God.getInstance().inicializaJogo(new Humano(), new Guloso());
 		podeComecarJogo = false;
 	}
 
@@ -71,7 +85,7 @@ public class Tabuleiro {
 		JLabel lblBrancas = new JLabel("BRANCAS");
 		lblBrancas.setFont(new Font("Tahoma", Font.BOLD, 11));
 		lblBrancas.setHorizontalAlignment(SwingConstants.CENTER);
-		lblBrancas.setBounds(40, 21, 52, 14);
+		lblBrancas.setBounds(40, 21, 66, 14);
 		frmReversi.getContentPane().add(lblBrancas);
 
 		labelPontosBrancas = new JLabel();
@@ -111,16 +125,38 @@ public class Tabuleiro {
 		labelJogador.setBounds(189, 39, 107, 14);
 		frmReversi.getContentPane().add(labelJogador);
 		
+		btnPrximaJogada = new JButton("Pr\u00F3xima jogada");
+		btnPrximaJogada.setEnabled(false);
+		btnPrximaJogada.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				God.getInstance().jogarMaquina();
+			}
+		});
+		btnPrximaJogada.setBounds(160, 471, 136, 29);
+		frmReversi.getContentPane().add(btnPrximaJogada);
+		
 		JMenuBar menuBar = new JMenuBar();
 		frmReversi.setJMenuBar(menuBar);
 		
 		JMenu mnJogo = new JMenu("Jogo");
 		menuBar.add(mnJogo);
 		
-		JMenuItem mntmReiniciar = new JMenuItem("Reiniciar");
-		mntmReiniciar.setAction(novoJogoAction);
-		mnJogo.add(mntmReiniciar);
+		JMenu mnNovoJogo = new JMenu("Novo jogo");
+		mnJogo.add(mnNovoJogo);
 		
+		JMenuItem mntmHumanoContraHumano = new JMenuItem("Humano contra Humano");
+		mntmHumanoContraHumano.setAction(novoJogoHumanoVsHumanoAction);
+		mnNovoJogo.add(mntmHumanoContraHumano);
+		
+		JMenuItem mntmHumanoVsMquina = new JMenuItem("Humano Vs M\u00E1quina");
+		mntmHumanoVsMquina.setAction(novoJogoHumanoVsMaquinaAction);
+		mnNovoJogo.add(mntmHumanoVsMquina);
+		
+		JMenuItem mntmMquinaVsMquina = new JMenuItem("M\u00E1quina Vs M\u00E1quina");
+		mntmMquinaVsMquina.setAction(novoJogoMaquinaVsMaquinaAction);
+		mnNovoJogo.add(mntmMquinaVsMquina);
+		
+
 		JMenuItem mntmSair = new JMenuItem("Sair");
 		mntmSair.setAction(sairAction);
 		mnJogo.add(mntmSair);
@@ -137,12 +173,11 @@ public class Tabuleiro {
 	}
 
 
-	public void atualiza(final Casa casas[][], StatusCasa jogador,
-			int pontosBrancas, int pontosPretas) {
+	public void atualiza(final Casa casas[][], Jogador jogadorVez, int pontosBrancas, int pontosPretas) {		
 		panel.removeAll();
+		btnPrximaJogada.setEnabled(false);
 
-		for (int i = 0; i < casas.length; i++) {
-			
+		for (int i = 0; i < casas.length; i++) {			
 			for (int j = 0; j < casas[i].length; j++) {
 		
 				JLabel labelImage;
@@ -161,9 +196,13 @@ public class Tabuleiro {
 				case JOGADA_POSSIVEL:
 					imageIcon = new ImageIcon("img/jogada_possivel.png");
 					labelImage = new JLabel(imageIcon);
-										
-					labelImage.addMouseListener(new JogadaDisponivelListener(i, j));
-
+					
+					if(jogadorVez.getClass() == Humano.class){
+						labelImage.addMouseListener(new JogadaDisponivelListener(i, j));
+						System.out.println("Jogador = Humano");
+					}else{
+						
+					}
 					break;
 					
 				default:
@@ -175,22 +214,25 @@ public class Tabuleiro {
 				
 				panel.add(labelImage);	
 			}
+			if(jogadorVez.getClass() != Humano.class){
+				btnPrximaJogada.setEnabled(true);
+				System.out.println("Jogador = m‡quina");
+			}
 		}
 		
 		labelJogador.setText("PEÇAS "
-				+ (jogador == StatusCasa.PECA_BRANCA ? "BRANCAS" : "PRETAS"));
+				+ (jogadorVez.cor == StatusCasa.PECA_BRANCA ? "BRANCAS" : "PRETAS"));
 		
 		labelPontosBrancas.setText(Integer.toString(pontosBrancas));
 		labelPontosPretas.setText(Integer.toString(pontosPretas));
-
 	}
 	
 	
-	public void semJogadasPossiveis(StatusCasa jogador) {
+	public void semJogadasPossiveis(Jogador adversario) {
 		String mensagem =	"As peças " +
-				(jogador == StatusCasa.PECA_BRANCA ? "brancas" : "pretas") +
+				(adversario.cor == StatusCasa.PECA_BRANCA ? "brancas" : "pretas") +
 				" não possuem movimentos!\n" +
-				"As peças " + (jogador == StatusCasa.PECA_PRETA ? "brancas" : "pretas") +
+				"As peças " + (adversario.cor == StatusCasa.PECA_PRETA ? "brancas" : "pretas") +
 				" jogarão novamente!";
 
 		JOptionPane.showMessageDialog(frmReversi, mensagem, "Sem jogadas possíveis",
@@ -239,18 +281,45 @@ public class Tabuleiro {
 		public void mouseReleased(MouseEvent arg0) {}
 	}
 	
-	private class NovoJogoAction extends AbstractAction {
+	private class NovoJogoHumanoVsHumanoAction extends AbstractAction {
 		private static final long serialVersionUID = 1L;
-		public NovoJogoAction() {
-			putValue(NAME, "Novo jogo");
+		public NovoJogoHumanoVsHumanoAction() {
+			putValue(NAME, "Humano Vs Humano");
 		}
 		public void actionPerformed(ActionEvent e) {
 			if (podeComecarJogo) {
-				God.getInstance().inicializaJogo();
+				God.getInstance().inicializaJogo(new Humano(), new Humano());
 				podeComecarJogo = false;
 			}
 		}
 	}
+	
+	private class NovoJogoHumanoVsMaquinaAction extends AbstractAction {
+		private static final long serialVersionUID = 1L;
+		public NovoJogoHumanoVsMaquinaAction() {
+			putValue(NAME, "Humano Vs M‡quina");
+		}
+		public void actionPerformed(ActionEvent e) {
+			if (podeComecarJogo) {
+				God.getInstance().inicializaJogo(new Humano(), new Guloso());
+				podeComecarJogo = false;
+			}
+		}
+	}
+	
+	private class NovoJogoMaquinaVsMaquinaAction extends AbstractAction {
+		private static final long serialVersionUID = 1L;
+		public NovoJogoMaquinaVsMaquinaAction() {
+			putValue(NAME, "M‡quina Vs M‡quina");
+		}
+		public void actionPerformed(ActionEvent e) {
+			if (podeComecarJogo) {
+				God.getInstance().inicializaJogo(new Minmax(), new Guloso());
+				podeComecarJogo = false;
+			}
+		}
+	}
+	
 	private class SairAction extends AbstractAction {
 		private static final long serialVersionUID = 1L;
 		public SairAction() {

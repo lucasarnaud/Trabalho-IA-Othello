@@ -2,7 +2,7 @@ package model;
 
 import controller.StatusCasa;
 
-public class Casa {
+public class Casa implements Cloneable {
 
 	private StatusCasa status;
 	private int i;
