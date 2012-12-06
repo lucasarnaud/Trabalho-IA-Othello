@@ -27,6 +27,10 @@ public class God implements Board, Cloneable {
 	private Jogador peca_preta;
 	private Jogador peca_branca;
 	
+	private int numeroJogadas;
+	
+	private boolean gameOver;
+	
 	private Casa[][] casas;
 
 	private HashSet<Casa> jogadasPossiveis; // armazena o conjunto de casas disponiveis por rodada
@@ -47,14 +51,17 @@ public class God implements Board, Cloneable {
 
 		pecasJogadores.put(StatusCasa.PECA_BRANCA, new HashSet<Casa>());
 		pecasJogadores.put(StatusCasa.PECA_PRETA, new HashSet<Casa>());
-
-		tabuleiro = Tabuleiro.getInstance();
 	}
 
 	public void inicializaJogo(Jogador peca_preta, Jogador peca_branca) {
+		tabuleiro = Tabuleiro.getInstance();
+		
 		pecasJogadores.get(StatusCasa.PECA_BRANCA).clear();
 		pecasJogadores.get(StatusCasa.PECA_PRETA).clear();
 		jogadasPossiveis.clear();
+		
+		gameOver = false;
+		numeroJogadas = 0;
 		
 		this.peca_preta = peca_preta;
 		this.peca_branca = peca_branca;
@@ -102,11 +109,11 @@ public class God implements Board, Cloneable {
 	}
 
 	public void jogar(int i, int j) {
-
 		verificaValidadeJogada(i, j);
+		
+		numeroJogadas++;
 
 		colocaPeca(i, j); // posiciona a nova peca no tabuleiro e reverte as pecas da outra cor
-		System.out.println("Jogador: " + jogadorVez.cor + " Jogou na casa  i: "+i+" e j: "+j);
 
 		atualizaProximaJogada();
 
@@ -120,13 +127,18 @@ public class God implements Board, Cloneable {
 
 			atualizaProximaJogada();
 
-			if (jogadasPossiveis.isEmpty()) { fimJogo(); return; }
+			if (jogadasPossiveis.isEmpty()) {
+				fimJogo();
+				gameOver = true;
+				return;
+			}
 
 			tabuleiro.semJogadasPossiveis(adversario);
 			tabuleiro.atualiza(casas, jogadorVez,
 					pecasJogadores.get(StatusCasa.PECA_BRANCA).size(),
 					pecasJogadores.get(StatusCasa.PECA_PRETA).size());
 		}
+		
 	}
 
 	private void atualizaProximaJogada() {
@@ -286,15 +298,30 @@ public class God implements Board, Cloneable {
 		int j = casa.getJ();
 		
 		god.verificaValidadeJogada(i, j);
+
+		god.numeroJogadas++;
+		
 		god.colocaPeca(i, j); // posiciona a nova peca no tabuleiro e reverte as pecas da outra cor
+
 		god.atualizaProximaJogada();
+
+		if (god.jogadasPossiveis.isEmpty()) {
+
+			god.atualizaProximaJogada();
+
+			if (god.jogadasPossiveis.isEmpty()) {
+				god.gameOver = true;
+			}
+		}
 		
 		return god;
 	}
 
 	@Override
 	public Integer evaluate(StatusCasa jogador) {
-		return pecasJogadores.get(jogador).size();
+		StatusCasa adversario = jogador == StatusCasa.PECA_BRANCA ? StatusCasa.PECA_BRANCA
+				: StatusCasa.PECA_PRETA;
+		return pecasJogadores.get(jogador).size()-pecasJogadores.get(adversario).size();
 	}
 
 	@Override
@@ -304,13 +331,12 @@ public class God implements Board, Cloneable {
 
 	@Override
 	public boolean isGameOver() {
-		if (jogadasPossiveis.isEmpty()) {
-
-			atualizaProximaJogada();
-
-			if (jogadasPossiveis.isEmpty()) { return true; }			
-		}
-		return false;
+		return gameOver;
+	}
+	
+	@Override
+	public int getNumeroJogadas() {
+		return numeroJogadas;
 	}
 	
 	
@@ -319,39 +345,35 @@ public class God implements Board, Cloneable {
 	public Board getClone(){
 		God clone = new God();
 		
-		clone.jogadasPossiveis.clear();
-		for (Casa casa : this.jogadasPossiveis) {
-			Casa casa_clone = new Casa(casa.getI(), casa.getJ());
-			casa_clone.setStatus(casa.getStatus());
-			
-			clone.jogadasPossiveis.add(casa_clone);
-		}
-		
-		clone.jogadorVez = new Jogador();
-		clone.jogadorVez.cor = this.jogadorVez.cor;
+		clone.jogadorVez = this.jogadorVez;
 		clone.peca_preta = this.peca_preta;
 		clone.peca_branca = this.peca_branca;
 		
-		for (int i = 0; i < TAMANHO_TABULEIRO; i++) {
-			for (int j = 0; j < TAMANHO_TABULEIRO; j++) {
-				clone.casas[i][j] = new Casa(casas[i][j].getI(), casas[i][j].getJ());
-				clone.casas[i][j].setStatus(casas[i][j].getStatus());
-			}
+		for (Casa casa : this.jogadasPossiveis) {
+			int i = casa.getI();
+			int j = casa.getJ();
+
+			clone.casas[i][j].setStatus(StatusCasa.JOGADA_POSSIVEL);
+			clone.jogadasPossiveis.add(clone.casas[i][j]);
 		}
 		
-		clone.pecasJogadores.clear();
 		for (Entry<StatusCasa, HashSet<Casa>> entry : this.pecasJogadores.entrySet()) {
 			for (Casa casa : entry.getValue()) {
-				Casa casa_clone = new Casa(casa.getI(), casa.getJ());
+				Casa casa_clone = clone.casas[casa.getI()][casa.getJ()];
 				casa_clone.setStatus(casa.getStatus());
-				if(clone.pecasJogadores.get(entry.getKey()) == null)
-					clone.pecasJogadores.put(entry.getKey(), new HashSet<Casa>());
 				clone.pecasJogadores.get(entry.getKey()).add(casa_clone);
 			}
 		}
 		
+		clone.numeroJogadas = numeroJogadas;
+		clone.gameOver = gameOver;
 		clone.tabuleiro = null;
 		return clone;
+	}
+	
+	@Override
+	public HashMap<StatusCasa, HashSet<Casa>> getPecasJogadores() {
+		return pecasJogadores;
 	}
 
 	public void jogarMaquina() {

@@ -1,5 +1,6 @@
 package controller;
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 import jogadores.Jogador;
@@ -13,4 +14,6 @@ public interface Board {
 	public Jogador currentPlayer();
 	public boolean isGameOver();
 	public Board getClone();
+	public int getNumeroJogadas();
+	public HashMap<StatusCasa, HashSet<Casa>> getPecasJogadores();
 }
